@@ -292,7 +292,7 @@ const DrawableCanvas = ({ args }: ComponentProps) => {
           id="canvas"
           width={canvasWidth}
           height={canvasHeight}
-          style={{ border: "lightgrey 1px solid" }}
+          style={{ border: "transparant" }}
         />
       </div>
       {displayToolbar && (
