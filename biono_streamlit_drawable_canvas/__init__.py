@@ -119,7 +119,7 @@ def st_canvas(
     # Resize background_image to canvas dimensions by default
     # Then override background_color
     background_image_url = None
-    if background_image:
+    if background_image is not None:
         background_image = _resize_img(background_image, height, width)
         # Reduce network traffic and cache when switch another configure, use streamlit in-mem filemanager to convert image to URL
         background_image_url = st_image.image_to_url(
