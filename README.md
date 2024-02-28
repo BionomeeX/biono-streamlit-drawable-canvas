@@ -1,3 +1,48 @@
+# Bionomeex FORK - Streamlit - Drawable Canvas
+
+### Use in container
+Add in Dockerfile:
+> RUN apt install git -y  
+> RUN git clone https://github.com/BionomeeX/biono-streamlit-drawable-canvas.git /libs/biono-streamlit-drawable-canvas  
+> RUN pip install -e /libs/biono-streamlit-drawable-canvas  
+
+### Use in developpment
+Build:
+> export NODE_OPTIONS=--openssl-legacy-provider  
+> cd biono_streamlit_drawable_canvas/frontend
+> npm run build
+
+Install:
+> pip install -e
+
+Use in code
+```python
+import uuid
+from biono_streamlit_drawable_canvas import st_canvas
+
+img = np.ones([1080, 1080, 3])
+drawing_mode = st.selectbox(
+    "Drawing tool:", ("point", "freedraw", "line", "rect", "circle", "transform")
+)
+canvas_initial = {
+    "version": "3.6.3",
+    "objects": [],
+    "background": "#eee",
+}
+canvas_result = st_canvas(
+    update_streamlit=True,
+    display_toolbar=True,
+    background_image=img,
+    drawing_mode=drawing_mode,
+    stroke_width=1,
+    stroke_color="#eee",
+    width=1080,
+    height=1080,
+    key=uuid.UUID(),
+    initial_drawing=canvas_initial,
+)
+```
+
 # Streamlit - Drawable Canvas
 
 Streamlit component which provides a sketching canvas using [Fabric.js](http://fabricjs.com/).

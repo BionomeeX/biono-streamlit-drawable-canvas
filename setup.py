@@ -15,7 +15,7 @@ def readme() -> str:
 
 setuptools.setup(
     name="biono-streamlit-drawable-canvas",
-    version="0.9.3",
+    version="1.0.0",
     author="Fanilo ANDRIANASOLO",
     author_email="contact@andfanilo.com",
     description="A Streamlit custom component for a free drawing canvas using Fabric.js.",

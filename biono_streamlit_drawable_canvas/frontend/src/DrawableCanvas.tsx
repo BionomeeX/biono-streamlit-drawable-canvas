@@ -13,6 +13,10 @@ import UpdateStreamlit from "./components/UpdateStreamlit"
 import { useCanvasState } from "./DrawableCanvasState"
 import { tools, FabricTool } from "./lib"
 
+let is_mouse_down = false
+let lastPosX = 0
+let lastPosY = 0
+
 function getStreamlitBaseUrl(): string | null {
   const params = new URLSearchParams(window.location.search)
   const baseUrl = params.get("streamlitUrl")
@@ -119,28 +123,6 @@ const DrawableCanvas = ({ args }: ComponentProps) => {
   }, [canvas, initialDrawing, initialState, resetState])
 
   /**
-   * Update background image
-   */
-  useEffect(() => {
-    if (backgroundImageURL) {
-      var bgImage = new Image();
-      bgImage.onload = function() {
-        backgroundCanvas.getContext().drawImage(bgImage, 0, 0);
-      };
-      const baseUrl = getStreamlitBaseUrl() ?? ""
-      bgImage.src = baseUrl + backgroundImageURL
-    }
-  }, [
-    canvas,
-    backgroundCanvas,
-    canvasHeight,
-    canvasWidth,
-    backgroundColor,
-    backgroundImageURL,
-    saveState,
-  ])
-
-  /**
    * If state changed from undo/redo/reset, update user-facing canvas
    */
   useEffect(() => {
@@ -151,16 +133,32 @@ const DrawableCanvas = ({ args }: ComponentProps) => {
 
 
 // START CUSTOM BIONOMEEX ================
-  canvas.on('mouse:wheel', function(opt) {
-    var delta = opt.e.deltaY;
+
+  const preventOutbounds = () => {
     var zoom = canvas.getZoom();
-    zoom = Math.min(20, Math.max(1, zoom * 0.9996 ** delta));
-    canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
 
     var vpt = canvas.viewportTransform;
     if (vpt) {
-      var zoomedWidth = canvas.getWidth() * zoom;
-      var zoomedHeight = canvas.getHeight() * zoom;
+      let limit_width = canvas.getWidth()
+      let limit_height = canvas.getHeight()
+      if (backgroundImageURL) {
+        const baseUrl = getStreamlitBaseUrl() ?? "";
+        fabric.Image.fromURL(baseUrl + backgroundImageURL, function(img) {
+          limit_width = img.width ?? canvas.getWidth()
+          limit_height = img.height ?? canvas.getHeight()
+        });
+      }
+      let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+      let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+      if (vw < limit_width) {
+        limit_width = limit_width*2 - vw
+      }
+      if (vh < limit_height) {
+        limit_height = limit_height*2 - vh
+      }
+
+      var zoomedWidth = limit_width * zoom;
+      var zoomedHeight = limit_height * zoom;
 
       var topLeftX = vpt[4];
       var topLeftY = vpt[5];
@@ -170,19 +168,71 @@ const DrawableCanvas = ({ args }: ComponentProps) => {
 
       if (topLeftX > 0) dx = -topLeftX;
       if (topLeftY > 0) dy = -topLeftY;
-      if (bottomRightX < canvas.getWidth()) dx = canvas.getWidth() - bottomRightX;
-      if (bottomRightY < canvas.getHeight()) dy = canvas.getHeight() - bottomRightY;
-      vpt[4] += dx;
-      vpt[5] += dy;
+      if (bottomRightX < limit_width) dx = limit_width - bottomRightX;
+      if (bottomRightY < limit_height) dy = limit_height - bottomRightY;
+      // vpt[4] += dx;
+      // vpt[5] += dy;
 
       canvas.requestRenderAll();
     }
+  }
+
+  canvas.on('mouse:wheel', function(opt) {
+    var delta = opt.e.deltaY;
+    var zoom = canvas.getZoom();
+    zoom = Math.min(20, Math.max(1.01, zoom * 0.9996 ** delta));
+    canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
+
+    preventOutbounds();
 
     opt.e.preventDefault();
     opt.e.stopPropagation();
   });
 
+
+  canvas.on('mouse:down', function(opt) {
+    is_mouse_down = true
+
+    var pointer = canvas.getPointer(opt.e);
+    lastPosX = pointer.x;
+    lastPosY = pointer.y;
+  })
+
+
+  canvas.on('mouse:move', function(opt) {
+    if (!is_mouse_down|| !opt.e.altKey) return;
+
+    var vpt = canvas.viewportTransform;
+    if (vpt) {
+      var pointer = canvas.getPointer(opt.e);
+  
+      var posX = pointer.x;
+      var posY = pointer.y;
+  
+      var diffX = posX - lastPosX;
+      var diffY = posY - lastPosY;
+
+      vpt[4] += diffX;
+      vpt[5] += diffY;
+
+      canvas.requestRenderAll();
+
+      lastPosX = posX;
+      lastPosY = posY;
+
+      preventOutbounds()
+
+      opt.e.preventDefault();
+      opt.e.stopPropagation();
+    }
+  })
+
+  canvas.on('mouse:up', function() {
+    is_mouse_down = false
+  })
+
   useEffect(() => {
+    preventOutbounds();
     if (backgroundImageURL) {
       const baseUrl = getStreamlitBaseUrl() ?? "";
       fabric.Image.fromURL(baseUrl + backgroundImageURL, function(img) {
@@ -196,7 +246,6 @@ const DrawableCanvas = ({ args }: ComponentProps) => {
   
 
 // END CUSTOM BIONOMEEX ================
-
 
   /**
    * Update canvas with selected tool
@@ -229,6 +278,9 @@ const DrawableCanvas = ({ args }: ComponentProps) => {
     return () => {
       cleanupToolEvents()
       canvas.off("mouse:up")
+      canvas.off("mouse:wheel")
+      canvas.off("mouse:down")
+      canvas.off("mouse:move")
       canvas.off("mouse:dblclick")
     }
   }, [

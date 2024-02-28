@@ -1,6 +1,6 @@
 {
   "name": "drawable_canvas",
-  "version": "0.9.3",
+  "version": "1.0.0",
   "private": true,
   "dependencies": {
     "apache-arrow": "^0.17.0",
