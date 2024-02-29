@@ -135,58 +135,67 @@ const DrawableCanvas = ({ args }: ComponentProps) => {
 // START CUSTOM BIONOMEEX ================
 
   const preventOutbounds = () => {
-    var zoom = canvas.getZoom();
 
     var vpt = canvas.viewportTransform;
     if (vpt) {
-      let limit_width = canvas.getWidth()
-      let limit_height = canvas.getHeight()
-      if (backgroundImageURL) {
-        const baseUrl = getStreamlitBaseUrl() ?? "";
-        fabric.Image.fromURL(baseUrl + backgroundImageURL, function(img) {
-          limit_width = img.width ?? canvas.getWidth()
-          limit_height = img.height ?? canvas.getHeight()
-        });
-      }
+      var zoom = canvas.getZoom();
       let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
       let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
-      if (vw < limit_width) {
-        limit_width = limit_width*2 - vw
-      }
-      if (vh < limit_height) {
-        limit_height = limit_height*2 - vh
-      }
+      
+      let canvas_width = canvas.getWidth() > vw ? vw : canvas.getWidth()
+      let canvas_height = canvas.getHeight() > vh ? vh : canvas.getHeight()
 
-      var zoomedWidth = limit_width * zoom;
-      var zoomedHeight = limit_height * zoom;
+      var zoomedWidth = canvas_width * zoom;
+      var zoomedHeight = canvas_height * zoom;
 
-      var topLeftX = vpt[4];
-      var topLeftY = vpt[5];
+      let limit_width = canvas.getWidth()
+      let limit_height = canvas.getHeight()
+
+      var topLeftX = -vpt[4];
+      var topLeftY = -vpt[5];
       var bottomRightX = topLeftX + zoomedWidth;
       var bottomRightY = topLeftY + zoomedHeight;
       var dx = 0, dy = 0;
 
-      if (topLeftX > 0) dx = -topLeftX;
-      if (topLeftY > 0) dy = -topLeftY;
-      if (bottomRightX < limit_width) dx = limit_width - bottomRightX;
-      if (bottomRightY < limit_height) dy = limit_height - bottomRightY;
-      // vpt[4] += dx;
-      // vpt[5] += dy;
+      if (topLeftX < 0) dx = -topLeftX;
+      if (topLeftY < 0) dy = -topLeftY;
+      if (bottomRightX > limit_width) dx = limit_width - bottomRightX;
+      if (bottomRightY > limit_height) dy = limit_height - bottomRightY;
+
+      console.log("===============stats===============")
+      console.log("zoom= " + zoom)
+      console.log("vw= " + vw)
+      console.log("vh= " + vh)
+      console.log("canvas_width= " + canvas_width)
+      console.log("canvas_height= " + canvas_height)
+      console.log("topLeftX= " + topLeftX)
+      console.log("topLeftY= " + topLeftY)
+      console.log("bottomRightX= " + bottomRightX)
+      console.log("bottomRightY= " + bottomRightY)
+      console.log("limit_width= " + limit_width)
+      console.log("limit_height= " + limit_height)
+      console.log("dx= " + dx)
+      console.log("dy= " + dy)
+      console.log("  ")
+      vpt[4] -= dx;
+      vpt[5] -= dy;
 
       canvas.requestRenderAll();
     }
   }
 
   canvas.on('mouse:wheel', function(opt) {
-    var delta = opt.e.deltaY;
-    var zoom = canvas.getZoom();
-    zoom = Math.min(20, Math.max(1.01, zoom * 0.9996 ** delta));
-    canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
+    if (opt.e.altKey) {
+      var delta = opt.e.deltaY;
+      var zoom = canvas.getZoom();
+      zoom = Math.min(20, Math.max(1, zoom * 0.9996 ** delta));
+      canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
 
-    preventOutbounds();
+      preventOutbounds();
 
-    opt.e.preventDefault();
-    opt.e.stopPropagation();
+      opt.e.preventDefault();
+      opt.e.stopPropagation();
+    }
   });
 
 
